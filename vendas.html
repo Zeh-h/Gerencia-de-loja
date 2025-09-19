@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Vendas - Loja</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">🏪 Loja</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="produtos.html">Produtos</a></li>
+        <li class="nav-item"><a class="nav-link active" href="vendas.html">Vendas</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+  <h2 class="mb-4">🧾 Histórico de Vendas</h2>
+
+  <form id="vendaForm" class="row g-3 mb-4">
+    <div class="col-md-4">
+      <select id="produtoSelect" class="form-select" required>
+        <option value="">Escolha um produto</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <input type="number" class="form-control" id="quantidadeVenda" placeholder="Quantidade" required>
+    </div>
+    <div class="col-md-2">
+      <input type="text" class="form-control" id="valorVendaInput" placeholder="Valor venda (R$)" readonly>
+    </div>
+    <div class="col-md-2">
+      <input type="text" class="form-control" id="lucroVenda" placeholder="Lucro (R$)" readonly>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-success w-100">Registrar Venda</button>
+    </div>
+  </form>
+
+  <table class="table table-striped table-bordered align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Produto</th>
+        <th>Compra (R$)</th>
+        <th>Venda (R$)</th>
+        <th>Quantidade</th>
+        <th>Lucro (R$)</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="tabelaVendas"></tbody>
+  </table>
+
+  <div class="mt-3">
+    <h5>Total de Lucro: R$ <span id="totalLucro">0,00</span></h5>
+  </div>
+</div>
+
+<script>
+  let produtos = JSON.parse(localStorage.getItem("produtos")) || [];
+  let vendas = JSON.parse(localStorage.getItem("vendas")) || [];
+
+  const produtoSelect = document.getElementById("produtoSelect");
+  const valorVendaInput = document.getElementById("valorVendaInput");
+  const lucroVenda = document.getElementById("lucroVenda");
+  const quantidadeVenda = document.getElementById("quantidadeVenda");
+  const tabelaVendas = document.getElementById("tabelaVendas");
+  const vendaForm = document.getElementById("vendaForm");
+  const totalLucroSpan = document.getElementById("totalLucro");
+
+  function atualizarSelectProdutos() {
+    produtoSelect.innerHTML = '<option value="">Escolha um produto</option>';
+    produtos.forEach((p,i) => {
+      produtoSelect.innerHTML += `<option value="${i}">${p.nome} (Estoque: ${p.estoque})</option>`;
+    });
+  }
+
+  function atualizarTabela() {
+    tabelaVendas.innerHTML = "";
+    let totalLucro = 0;
+    vendas.forEach((v,i) => {
+      const lucro = (v.valorVenda - v.valorCompra) * v.quantidade;
+      totalLucro += lucro;
+      tabelaVendas.innerHTML += `
+        <tr>
+          <td>${v.nome}</td>
+          <td>${v.valorCompra.toFixed(2).replace(".", ",")}</td>
+          <td>${v.valorVenda.toFixed(2).replace(".", ",")}</td>
+          <td>${v.quantidade}</td>
+          <td>${lucro.toFixed(2).replace(".", ",")}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="excluirVenda(${i})">Excluir</button></td>
+        </tr>
+      `;
+    });
+    totalLucroSpan.innerText = totalLucro.toFixed(2).replace(".", ",");
+    localStorage.setItem("vendas", JSON.stringify(vendas));
+  }
+
+  function excluirVenda(index) {
+    if(confirm("Deseja realmente excluir esta venda?")) {
+      // Restaurar o estoque do produto
+      const venda = vendas[index];
+      const produto = produtos.find(p => p.nome === venda.nome);
+      if(produto) produto.estoque += venda.quantidade;
+
+      vendas.splice(index,1);
+      localStorage.setItem("produtos", JSON.stringify(produtos));
+      atualizarTabela();
+      atualizarSelectProdutos();
+    }
+  }
+
+  produtoSelect.addEventListener("change", () => {
+    const idx = produtoSelect.value;
+    if(idx !== "") {
+      const p = produtos[idx];
+      valorVendaInput.value = p.valorVenda.toFixed(2).replace(".", ",");
+      lucroVenda.value = (p.valorVenda - p.valorCompra).toFixed(2).replace(".", ",");
+      quantidadeVenda.max = p.estoque; // limita a quantidade ao estoque
+    } else {
+      valorVendaInput.value = "";
+      lucroVenda.value = "";
+      quantidadeVenda.removeAttribute("max");
+    }
+  });
+
+  vendaForm.addEventListener("submit", e => {
+    e.preventDefault();
+    const idx = produtoSelect.value;
+    const quantidade = parseInt(quantidadeVenda.value);
+
+    if(idx === "" || isNaN(quantidade) || quantidade <= 0) {
+      alert("Selecione o produto e informe quantidade válida!");
+      return;
+    }
+
+    const p = produtos[idx];
+
+    if(quantidade > p.estoque) {
+      alert(`Quantidade não disponível! Estoque atual: ${p.estoque}`);
+      return;
+    }
+
+    // Atualiza estoque
+    p.estoque -= quantidade;
+
+    // Registrar venda
+    vendas.push({
+      nome: p.nome,
+      valorCompra: p.valorCompra,
+      valorVenda: p.valorVenda,
+      quantidade: quantidade
+    });
+
+    localStorage.setItem("produtos", JSON.stringify(produtos));
+    localStorage.setItem("vendas", JSON.stringify(vendas));
+
+    atualizarTabela();
+    atualizarSelectProdutos();
+    vendaForm.reset();
+    valorVendaInput.value = "";
+    lucroVenda.value = "";
+  });
+
+  atualizarSelectProdutos();
+  atualizarTabela();
+</script>
+</body>
+</html>

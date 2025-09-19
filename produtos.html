@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Produtos - Loja</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .navbar { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">🏪 Loja</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link active" href="produtos.html">Produtos</a></li>
+          <li class="nav-item"><a class="nav-link" href="vendas.html">Vendas</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container my-4">
+    <h2>📦 Gerenciar Produtos</h2>
+
+    <!-- Formulário de cadastro -->
+    <form id="produtoForm" class="row g-3 mb-4">
+      <div class="col-md-3">
+        <input type="text" id="nomeProduto" class="form-control" placeholder="Nome do Produto" required>
+      </div>
+      <div class="col-md-2">
+        <input type="number" step="0.01" id="valorCompra" class="form-control" placeholder="Valor de Compra (R$)" required>
+      </div>
+      <div class="col-md-2">
+        <input type="text" id="valorVenda" class="form-control" placeholder="Valor de Venda (R$) (15% lucro)" readonly>
+      </div>
+      <div class="col-md-2">
+        <input type="number" id="estoqueProduto" class="form-control" placeholder="Estoque" required min="0">
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-success w-100">Adicionar Produto</button>
+      </div>
+    </form>
+
+    <!-- Tabela de produtos -->
+    <table class="table table-striped table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>Compra (R$)</th>
+          <th>Venda (R$)</th>
+          <th>Estoque</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaProdutos"></tbody>
+    </table>
+  </div>
+
+  <script>
+    let produtos = JSON.parse(localStorage.getItem("produtos")) || [];
+
+    const valorCompraInput = document.getElementById("valorCompra");
+    const valorVendaInput = document.getElementById("valorVenda");
+
+    // Calcular venda com 15% de lucro automaticamente
+    valorCompraInput.addEventListener("input", () => {
+      const compra = parseFloat(valorCompraInput.value) || 0;
+      const venda = compra * 1.15;
+      valorVendaInput.value = venda.toFixed(2).replace(".", ",");
+    });
+
+    function atualizarTabela() {
+      const tabela = document.getElementById("tabelaProdutos");
+      tabela.innerHTML = "";
+      produtos.forEach((p, i) => {
+        tabela.innerHTML += `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.nome}</td>
+            <td>${p.valorCompra.toFixed(2).replace(".", ",")}</td>
+            <td>${p.valorVenda.toFixed(2).replace(".", ",")}</td>
+            <td>${p.estoque}</td>
+            <td>
+              <button class="btn btn-sm btn-danger" onclick="excluirProduto(${i})">Excluir</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function excluirProduto(index) {
+      if(confirm("Deseja realmente excluir este produto?")) {
+        produtos.splice(index, 1);
+        localStorage.setItem("produtos", JSON.stringify(produtos));
+        atualizarTabela();
+      }
+    }
+
+    document.getElementById("produtoForm").addEventListener("submit", function(e){
+      e.preventDefault();
+      let novoId = produtos.length > 0 ? Math.max(...produtos.map(p => p.id)) + 1 : 1;
+      const novoProduto = {
+        id: novoId,
+        nome: document.getElementById("nomeProduto").value,
+        valorCompra: parseFloat(document.getElementById("valorCompra").value),
+        valorVenda: parseFloat(document.getElementById("valorVenda").value.replace(",", ".")),
+        estoque: parseInt(document.getElementById("estoqueProduto").value)
+      };
+      produtos.push(novoProduto);
+      localStorage.setItem("produtos", JSON.stringify(produtos));
+      atualizarTabela();
+      this.reset();
+      valorVendaInput.value = "";
+    });
+
+    atualizarTabela();
+  </script>
+</body>
+</html>

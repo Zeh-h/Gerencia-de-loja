@@ -1,0 +1,21 @@
+body {
+  background: #f8f9fa;
+}
+
+h2 {
+  font-weight: bold;
+}
+
+.navbar {
+  margin-bottom: 20px;
+}
+
+.card {
+  border-radius: 12px;
+}
+
+.table {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
